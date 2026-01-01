@@ -43,7 +43,7 @@ Fanap是一个用Go语言编写的Linux系统风扇控制程序，可以根据CP
 docker pull ghcr.io/charleypeng/fanap:latest
 
 # 拉取特定版本
-docker pull ghcr.io/charleypeng/fanap:v1.0.1
+docker pull ghcr.io/charleypeng/fanap:v1.0.2
 ```
 
 #### 运行容器
@@ -705,8 +705,8 @@ make build-linux
 
 ```bash
 # 创建并推送标签（会触发 GitHub Actions 自动构建和发布）
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.0.2
+git push origin v1.0.2
 ```
 
 创建标签后，GitHub Actions 会自动：
@@ -722,7 +722,7 @@ git push origin v1.0.1
 docker pull ghcr.io/charleypeng/fanap:latest
 
 # 拉取特定版本
-docker pull ghcr.io/charleypeng/fanap:v1.0.1
+docker pull ghcr.io/charleypeng/fanap:v1.0.2
 ```
 
 ### 格式化代码
@@ -802,7 +802,7 @@ fanap/
 项目使用 GitHub Actions 实现自动化构建和发布：
 
 - **触发条件**：
-  - 推送标签（如 `v1.0.1`）
+  - 推送标签（如 `v1.0.2`）
   - 推送到 `main` 分支
   - 创建 GitHub Release
   - 手动触发（workflow_dispatch）
@@ -822,7 +822,7 @@ fanap/
 每次构建会生成以下标签：
 
 - `latest` - 最新的 main 分支构建
-- `vX.Y.Z` - 版本标签（如 `v1.0.1`）
+- `vX.Y.Z` - 版本标签（如 `v1.0.2`）
 - `<commit-sha>` - 具体的提交哈希
 - `<branch>-<sha>` - 分支加提交哈希（PR 场景）
 
@@ -844,7 +844,7 @@ fanap/
 
 ## 更新日志
 
-### v1.0.1 (2026-01-01)
+### v1.0.2 (2026-01-01)
 
 - 修复 Docker 容器启动时的设备权限问题
 - 更新所有 Docker 运行命令，使用 `--cap-add SYS_RAWIO` 和卷挂载替代 `--device`
