@@ -94,8 +94,25 @@ func (cc *CoolingDeviceController) SetSpeed(speed int) error {
 	// 将速度（0-255）映射到冷却级别（0-maxLevel）
 	level := (speed * maxLevel) / 255
 
+	// 对于只有2级（开/关）的设备，使用阈值
+	if maxLevel == 1 {
+		// 如果速度高于最小PWM的50%，打开风扇，否则关闭
+		if speed > 127 { // 50% of 255
+			level = 1
+		} else {
+			level = 0
+		}
+
+		if cc.verbose {
+			fmt.Printf("2级设备: speed=%d -> level=%d\n", speed, level)
+		}
+	}
+
 	// 避免重复设置相同的值
 	if level == cc.lastLevel {
+		if cc.verbose && speed != cc.lastLevel {
+			fmt.Printf("级别未变化，跳过设置: level=%d\n", level)
+		}
 		return nil
 	}
 
@@ -103,6 +120,7 @@ func (cc *CoolingDeviceController) SetSpeed(speed int) error {
 		return err
 	}
 
+	// 注意：详细的日志由 cooling.SetLevel 内部处理
 	cc.lastLevel = level
 	return nil
 }
