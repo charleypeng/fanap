@@ -29,14 +29,14 @@ services:
       # 详细日志（true/false）
       - FANAP_VERBOSE=${FANAP_VERBOSE:-false}
 
-    # 设备映射 - 提供对hwmon和thermal设备的访问
-    devices:
-      # 温度传感器
-      - /sys/class/hwmon:/sys/class/hwmon
-      - /sys/class/thermal:/sys/class/thermal
+    # 设备权限 - 提供对hwmon和thermal设备的访问
+    cap_add:
+      - SYS_RAWIO
 
-    # 卷映射 - 日志持久化
+    # 卷映射 - 日志持久化和设备访问
     volumes:
+      - /sys/class/hwmon:/sys/class/hwmon:ro
+      - /sys/class/thermal:/sys/class/thermal:ro
       - fanap-logs:/var/log/fanap
 
     # 资源限制（可选）

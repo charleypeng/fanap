@@ -50,8 +50,19 @@ docker build -t fanap:latest .
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/hwmon:/sys/class/hwmon \
-  --device=/sys/class/thermal:/sys/class/thermal \
+  --privileged \
+  -e FANAP_VERBOSE=true \
+  fanap:latest
+```
+
+**注意**：在 `docker run` 命令中使用 `--privileged` 模式来访问 hwmon 和 thermal 设备。如果不使用 privileged 模式，需要使用以下命令：
+
+```bash
+docker run -d \
+  --name fanap \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon \
+  -v /sys/class/thermal:/sys/class/thermal \
   -e FANAP_VERBOSE=true \
   fanap:latest
 ```
@@ -86,8 +97,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --privileged \
   -e FANAP_INTERVAL=10s \
   -e FANAP_LOW_TEMP=35.0 \
   -e FANAP_HIGH_TEMP=65.0 \
@@ -120,15 +130,25 @@ docker-compose up -d
 
 ### 必需的设备映射
 
-Docker容器需要访问硬件监控设备：
+Docker容器需要访问硬件监控设备。有两种方法：
+
+**方法1：使用特权模式（简单但不推荐用于生产）**
 
 ```bash
---device=/sys/class/hwmon:/sys/class/hwmon
---device=/sys/class/thermal:/sys/class/thermal
+--privileged
+```
+
+**方法2：使用卷挂载和权限（推荐）**
+
+```bash
+--cap-add SYS_RAWIO
+-v /sys/class/hwmon:/sys/class/hwmon
+-v /sys/class/thermal:/sys/class/thermal
 ```
 
 **注意**：
-- `--device` 参数提供了对硬件设备的直接访问
+- `--privileged` 提供完整的设备访问权限
+- 卷挂载方式提供更细粒度的权限控制
 - 容器内的非root用户仍然需要适当的权限
 - QNAP等设备通常只需要thermal设备
 
@@ -202,8 +222,20 @@ docker rm fanap
 docker run -d \
   --name fanap \
   --restart unless-stopped \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --privileged \
+  -e FANAP_VERBOSE=false \
+  fanap:latest
+```
+
+或者使用更安全的权限方式：
+
+```bash
+docker run -d \
+  --name fanap \
+  --restart unless-stopped \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon \
+  -v /sys/class/thermal:/sys/class/thermal \
   -e FANAP_VERBOSE=false \
   fanap:latest
 ```
@@ -263,8 +295,17 @@ docker logs fanap
 
 ```bash
 docker run --rm \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --privileged \
+  fanap:latest -check
+```
+
+或者使用更安全的权限方式：
+
+```bash
+docker run --rm \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon \
+  -v /sys/class/thermal:/sys/class/thermal \
   fanap:latest -check
 ```
 
@@ -287,8 +328,8 @@ docker run -d \
 docker run -d \
   --name fanap \
   --cap-add SYS_RAWIO \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  -v /sys/class/hwmon:/sys/class/hwmon \
+  -v /sys/class/thermal:/sys/class/thermal \
   fanap:latest
 ```
 
@@ -299,17 +340,18 @@ QNAP NAS使用thermal cooling device，确保映射了thermal设备：
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/thermal:/sys/class/thermal \
+  --privileged \
   -e FANAP_VERBOSE=true \
   fanap:latest
 ```
 
-如果QNAP只使用thermal设备，可以省略hwmon映射：
+如果QNAP只使用thermal设备，可以使用更安全的权限方式：
 
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/thermal \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/thermal:/sys/class/thermal \
   fanap:latest
 ```
 
@@ -350,8 +392,19 @@ docker build -t fanap:latest .
 # 运行新容器
 docker run -d \
   --name fanap \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --privileged \
+  fanap:latest
+```
+
+或者使用更安全的权限方式：
+
+```bash
+# 运行新容器
+docker run -d \
+  --name fanap \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon \
+  -v /sys/class/thermal:/sys/class/thermal \
   fanap:latest
 ```
 

@@ -14,6 +14,9 @@ Fanap是一个用Go语言编写的Linux系统风扇控制程序，可以根据CP
 - ✅ **Docker容器化支持**
 - ✅ **环境变量配置**
 - ✅ **支持多种控制模式**（PWM、Cooling Device）
+- ✅ **GitHub Actions 自动构建和发布**
+- ✅ **预构建 Docker 镜像发布到 ghcr.io**
+- ✅ **版本化 Release 发布**
 - ✅ 支持systemd服务模式
 
 ## 系统要求
@@ -30,6 +33,36 @@ Fanap是一个用Go语言编写的Linux系统风扇控制程序，可以根据CP
 - 主机上的root权限或设备访问权限
 
 ## 快速开始
+
+### 方式0: 使用预构建镜像（最快捷）
+
+#### 从 GitHub Container Registry 拉取镜像
+
+```bash
+# 拉取最新版本
+docker pull ghcr.io/charleypeng/fanap:latest
+
+# 拉取特定版本
+docker pull ghcr.io/charleypeng/fanap:v1.0.1
+```
+
+#### 运行容器
+
+```bash
+docker run -d \
+  --name fanap \
+  --restart unless-stopped \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon:ro \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
+  -e FANAP_VERBOSE=true \
+  ghcr.io/charleypeng/fanap:latest
+```
+
+**查看日志：**
+```bash
+docker logs -f fanap
+```
 
 ### 方式1: Docker快速启动（最简单，推荐）
 
@@ -70,19 +103,34 @@ docker rm fanap
 
 ### 方式2: Docker手动配置
 
-#### 1. 构建Docker镜像
+#### 1. 构建Docker镜像（可选，也可以使用预构建镜像）
 
 ```bash
 ./build-docker.sh
 ```
 
-#### 2. 运行容器
+或直接使用预构建镜像：
+```bash
+docker pull ghcr.io/charleypeng/fanap:latest
+```
+
+#### 2. 运行容器（推荐方式）
 
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/hwmon:/sys/class/hwmon \
-  --device=/sys/class/thermal:/sys/class/thermal \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon:ro \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
+  -e FANAP_VERBOSE=true \
+  ghcr.io/charleypeng/fanap:latest
+```
+
+**或使用特权模式（更简单但不推荐生产环境）：**
+```bash
+docker run -d \
+  --name fanap \
+  --privileged \
   -e FANAP_VERBOSE=true \
   ghcr.io/charleypeng/fanap:latest
 ```
@@ -187,8 +235,16 @@ docker run --rm fanap:latest -version
 
 ```bash
 docker run --rm \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --privileged \
+  fanap:latest -check
+```
+
+或使用更安全的权限方式：
+```bash
+docker run --rm \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon:ro \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   fanap:latest -check
 ```
 
@@ -196,8 +252,7 @@ docker run --rm \
 
 ```bash
 docker run --rm \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --privileged \
   fanap:latest -list
 ```
 
@@ -206,8 +261,9 @@ docker run --rm \
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon:ro \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   fanap:latest
 ```
 
@@ -216,8 +272,9 @@ docker run -d \
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon:ro \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   -e FANAP_LOW_TEMP=35.0 \
   -e FANAP_HIGH_TEMP=65.0 \
   fanap:latest
@@ -228,8 +285,9 @@ docker run -d \
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon:ro \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   -e FANAP_INTERVAL=2s \
   -e FANAP_MIN_PWM=100 \
   fanap:latest
@@ -240,8 +298,9 @@ docker run -d \
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/hwmon:/sys/class/hwmon:ro \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   -e FANAP_LOW_TEMP=50.0 \
   -e FANAP_HIGH_TEMP=80.0 \
   -e FANAP_MIN_PWM=30 \
@@ -379,21 +438,20 @@ docker logs fanap
 
 ```bash
 docker run --rm \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  --privileged \
   fanap:latest -check
 ```
 
 #### 3. 权限错误
 
-如果看到权限错误，尝试使用 `--cap-add`：
+如果看到权限错误，尝试使用 `--cap-add` 和卷挂载：
 
 ```bash
 docker run -d \
   --name fanap \
   --cap-add SYS_RAWIO \
-  --device=/sys/class/hwmon \
-  --device=/sys/class/thermal \
+  -v /sys/class/hwmon:/sys/class/hwmon:ro \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   fanap:latest
 ```
 
@@ -404,12 +462,20 @@ QNAP使用thermal cooling device，确保映射了thermal设备：
 ```bash
 docker run -d \
   --name fanap \
-  --device=/sys/class/thermal:/sys/class/thermal \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   -e FANAP_VERBOSE=true \
   fanap:latest
 ```
 
-如果QNAP只使用thermal设备，可以省略hwmon映射。
+或使用特权模式：
+```bash
+docker run -d \
+  --name fanap \
+  --privileged \
+  -e FANAP_VERBOSE=true \
+  fanap:latest
+```
 
 ### 直接运行
 
@@ -505,9 +571,10 @@ sudo ./fanap-linux-amd64 -low-temp=40 -high-temp=75 -verbose
 
 # Docker
 docker run -d \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   -e FANAP_LOW_TEMP=40.0 \
   -e FANAP_HIGH_TEMP=75.0 \
-  --device=/sys/class/thermal \
   fanap:latest
 ```
 
@@ -519,9 +586,10 @@ sudo ./fanap-linux-amd64 -low-temp=35 -high-temp=60 -verbose
 
 # Docker
 docker run -d \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   -e FANAP_LOW_TEMP=35.0 \
   -e FANAP_HIGH_TEMP=60.0 \
-  --device=/sys/class/thermal \
   fanap:latest
 ```
 
@@ -533,9 +601,10 @@ sudo ./fanap-linux-amd64 -low-temp=50 -high-temp=80 -verbose
 
 # Docker
 docker run -d \
+  --cap-add SYS_RAWIO \
+  -v /sys/class/thermal:/sys/class/thermal:ro \
   -e FANAP_LOW_TEMP=50.0 \
   -e FANAP_HIGH_TEMP=80.0 \
-  --device=/sys/class/thermal \
   fanap:latest
 ```
 
@@ -632,6 +701,30 @@ make build-linux
 ./build-docker.sh
 ```
 
+### 创建版本标签并发布
+
+```bash
+# 创建并推送标签（会触发 GitHub Actions 自动构建和发布）
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+创建标签后，GitHub Actions 会自动：
+- 构建应用程序和 Docker 镜像
+- 推送 Docker 镜像到 `ghcr.io/charleypeng/fanap`
+- 上传构建产物到 GitHub Actions artifacts
+- 如果是 Release，将产物附加到 Release 页面
+
+### 拉取预构建镜像
+
+```bash
+# 从 GitHub Container Registry 拉取
+docker pull ghcr.io/charleypeng/fanap:latest
+
+# 拉取特定版本
+docker pull ghcr.io/charleypeng/fanap:v1.0.1
+```
+
 ### 格式化代码
 
 ```bash
@@ -674,6 +767,9 @@ fanap/
 ├── .dockerignore              # Docker构建忽略文件
 ├── systemd/
 │   └── fanap.service          # Systemd服务配置
+├── .github/
+│   └── workflows/
+│       └── docker-publish.yml # GitHub Actions 工作流
 └── pkg/
     ├── temp/
     │   └── temp.go            # 温度传感器模块
@@ -693,12 +789,71 @@ fanap/
 
 | 方式 | 适用场景 | 优势 | 劣势 |
 |-----|---------|------|------|
-| Docker快速启动 | 通用Linux | 最简单、自动化、容器隔离 | 需要Docker |
+| 预构建镜像 | 通用Linux | 无需构建、即用即跑 | 依赖 GitHub Container Registry |
+| Docker快速启动 | 通用Linux | 最简单、自动化、容器隔离 | 需要本地构建 |
 | Docker手动配置 | 通用Linux | 灵活配置、环境变量管理 | 需要手动配置 |
 | 直接运行 | QNAP NAS | 直接访问硬件、无容器开销 | 部署复杂、无容器隔离 |
 | Systemd服务 | 生产环境 | 自动启动、系统集成 | 配置相对复杂 |
 
+## 自动发布和 CI/CD
+
+### GitHub Actions 工作流
+
+项目使用 GitHub Actions 实现自动化构建和发布：
+
+- **触发条件**：
+  - 推送标签（如 `v1.0.1`）
+  - 推送到 `main` 分支
+  - 创建 GitHub Release
+  - 手动触发（workflow_dispatch）
+
+- **自动执行的任务**：
+  1. 检出代码
+  2. 设置 Go 环境
+  3. 构建应用程序（Linux x64）
+  4. 构建 Docker 镜像
+  5. 登录到 GitHub Container Registry
+  6. 推送 Docker 镜像到 `ghcr.io/charleypeng/fanap`
+  7. 上传构建产物到 Actions artifacts
+  8. 如果是 Release，将产物附加到 Release 页面
+
+### 镜像标签策略
+
+每次构建会生成以下标签：
+
+- `latest` - 最新的 main 分支构建
+- `vX.Y.Z` - 版本标签（如 `v1.0.1`）
+- `<commit-sha>` - 具体的提交哈希
+- `<branch>-<sha>` - 分支加提交哈希（PR 场景）
+
+### 查看构建状态
+
+访问 GitHub 仓库的 Actions 标签页查看所有工作流运行状态和日志。
+
+### 下载构建产物
+
+1. **从 Release 页面下载**（推荐）：
+   - 访问 Releases 页面
+   - 选择需要的版本
+   - 下载 `fanap-linux-amd64` 或 `fanap-linux-amd64.tar.gz`
+
+2. **从 Actions 页面下载**：
+   - 访问 Actions 标签页
+   - 选择需要的工作流运行
+   - 在 Artifacts 部分下载构建产物
+
 ## 更新日志
+
+### v1.0.1 (2026-01-01)
+
+- 修复 Docker 容器启动时的设备权限问题
+- 更新所有 Docker 运行命令，使用 `--cap-add SYS_RAWIO` 和卷挂载替代 `--device`
+- 添加 GitHub Actions 自动化工作流
+- 支持自动构建和推送 Docker 镜像到 GitHub Container Registry (ghcr.io)
+- 支持在 GitHub Release 中自动发布构建产物
+- 添加 `.github/workflows/docker-publish.yml` 工作流
+- 更新 `docker-compose.yml` 使用正确的卷挂载配置
+- 更新所有文档中的 Docker 运行示例
 
 ### v1.0.0 (2025-12-31)
 
