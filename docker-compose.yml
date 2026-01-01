@@ -8,7 +8,7 @@ services:
     image: fanap:latest
     container_name: fanap
     restart: unless-stopped
-    
+
     # 环境变量配置
     environment:
       # 温度检查间隔（例如：5s, 10s, 30s）
@@ -29,15 +29,8 @@ services:
       # 详细日志（true/false）
       - FANAP_VERBOSE=${FANAP_VERBOSE:-false}
 
-    # 设备权限 - 提供对hwmon和thermal设备的访问
-    cap_add:
-      - SYS_RAWIO
-
-    # 卷映射 - 日志持久化和设备访问
-    volumes:
-      - /sys/class/hwmon:/sys/class/hwmon:ro
-      - /sys/class/thermal:/sys/class/thermal:ro
-      - fanap-logs:/var/log/fanap
+    # 特权模式 - 提供对硬件设备的完全访问
+    privileged: true
 
     # 资源限制（可选）
     deploy:
@@ -55,8 +48,3 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-
-# 日志持久化
-volumes:
-  fanap-logs:
-    driver: local

@@ -4,22 +4,11 @@ FROM alpine:3.19
 # 安装必要的工具
 RUN apk add --no-cache ca-certificates
 
-# 创建运行用户（非root）
-RUN addgroup -g 1000 fanap && \
-    adduser -D -u 1000 -G fanap -s /sbin/nologin -g "Fanap Service" fanap
-
 # 创建工作目录
 WORKDIR /app
 
 # 复制二进制文件
 COPY build/fanap-linux-amd64 /app/fanap
-
-# 创建日志目录
-RUN mkdir -p /var/log/fanap && \
-    chown -R fanap:fanap /var/log/fanap
-
-# 切换到非root用户
-USER fanap
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
@@ -35,6 +24,5 @@ ENV FANAP_SENSOR=auto
 ENV FANAP_PWM=auto
 ENV FANAP_VERBOSE=false
 
-# 运行程序
+# 运行程序（需要root权限访问硬件设备）
 ENTRYPOINT ["/app/fanap"]
-CMD ["-verbose"]

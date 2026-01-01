@@ -104,9 +104,7 @@ echo "步骤4: 启动新容器"
 docker run -d \
   --name fanap \
   --restart unless-stopped \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   -e FANAP_LOW_TEMP=$LOW_TEMP \
   -e FANAP_HIGH_TEMP=$HIGH_TEMP \
   -e FANAP_MIN_PWM=$MIN_PWM \

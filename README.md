@@ -43,18 +43,18 @@ Fanap是一个用Go语言编写的Linux系统风扇控制程序，可以根据CP
 docker pull ghcr.io/charleypeng/fanap:latest
 
 # 拉取特定版本
-docker pull ghcr.io/charleypeng/fanap:v1.0.2
+docker pull ghcr.io/charleypeng/fanap:v1.0.3
 ```
 
 #### 运行容器
+
+**重要说明**：程序需要 root 权限访问硬件设备（/sys/class/thermal 和 /sys/class/hwmon）。
 
 ```bash
 docker run -d \
   --name fanap \
   --restart unless-stopped \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   -e FANAP_VERBOSE=true \
   ghcr.io/charleypeng/fanap:latest
 ```
@@ -114,19 +114,9 @@ docker rm fanap
 docker pull ghcr.io/charleypeng/fanap:latest
 ```
 
-#### 2. 运行容器（推荐方式）
+#### 2. 运行容器
 
-```bash
-docker run -d \
-  --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
-  -e FANAP_VERBOSE=true \
-  ghcr.io/charleypeng/fanap:latest
-```
-
-**或使用特权模式（更简单但不推荐生产环境）：**
+**推荐方式：使用特权模式**
 ```bash
 docker run -d \
   --name fanap \
@@ -134,6 +124,8 @@ docker run -d \
   -e FANAP_VERBOSE=true \
   ghcr.io/charleypeng/fanap:latest
 ```
+
+**注意**：由于需要访问 /sys/class/thermal 和 /sys/class/hwmon 等硬件设备，容器必须以 root 用户运行并使用 `--privileged` 模式。
 
 #### 3. 查看日志
 
@@ -239,15 +231,6 @@ docker run --rm \
   fanap:latest -check
 ```
 
-或使用更安全的权限方式：
-```bash
-docker run --rm \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
-  fanap:latest -check
-```
-
 #### 列出所有可用的传感器
 
 ```bash
@@ -261,9 +244,7 @@ docker run --rm \
 ```bash
 docker run -d \
   --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   fanap:latest
 ```
 
@@ -272,9 +253,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   -e FANAP_LOW_TEMP=35.0 \
   -e FANAP_HIGH_TEMP=65.0 \
   fanap:latest
@@ -285,9 +264,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   -e FANAP_INTERVAL=2s \
   -e FANAP_MIN_PWM=100 \
   fanap:latest
@@ -298,9 +275,7 @@ docker run -d \
 ```bash
 docker run -d \
   --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   -e FANAP_LOW_TEMP=50.0 \
   -e FANAP_HIGH_TEMP=80.0 \
   -e FANAP_MIN_PWM=30 \
@@ -417,7 +392,7 @@ ls -la /sys/class/hwmon
 ls -la /sys/class/thermal
 ```
 
-**尝试特权模式**（仅用于测试，不推荐生产环境）：
+**使用特权模式**（推荐）：
 
 ```bash
 docker run -d \
@@ -444,31 +419,8 @@ docker run --rm \
 
 #### 3. 权限错误
 
-如果看到权限错误，尝试使用 `--cap-add` 和卷挂载：
+如果看到 `permission denied` 错误，确保使用 `--privileged` 模式：
 
-```bash
-docker run -d \
-  --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon:ro \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
-  fanap:latest
-```
-
-#### 4. QNAP设备
-
-QNAP使用thermal cooling device，确保映射了thermal设备：
-
-```bash
-docker run -d \
-  --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
-  -e FANAP_VERBOSE=true \
-  fanap:latest
-```
-
-或使用特权模式：
 ```bash
 docker run -d \
   --name fanap \
@@ -476,6 +428,22 @@ docker run -d \
   -e FANAP_VERBOSE=true \
   fanap:latest
 ```
+
+**重要**：Docker 容器需要 root 权限才能写入 `/sys/class/thermal/cooling_deviceX/cur_state`。即使使用卷挂载和 `--cap-add`，某些系统仍可能限制访问。`--privileged` 模式是访问硬件设备的最可靠方式。
+
+#### 4. QNAP设备
+
+QNAP使用thermal cooling device，使用特权模式：
+
+```bash
+docker run -d \
+  --name fanap \
+  --privileged \
+  -e FANAP_VERBOSE=true \
+  fanap:latest
+```
+
+QNAP 设备通常只有 2 级风扇控制（开/关），程序会自动适配。
 
 ### 直接运行
 
@@ -571,8 +539,7 @@ sudo ./fanap-linux-amd64 -low-temp=40 -high-temp=75 -verbose
 
 # Docker
 docker run -d \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   -e FANAP_LOW_TEMP=40.0 \
   -e FANAP_HIGH_TEMP=75.0 \
   fanap:latest
@@ -586,8 +553,7 @@ sudo ./fanap-linux-amd64 -low-temp=35 -high-temp=60 -verbose
 
 # Docker
 docker run -d \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   -e FANAP_LOW_TEMP=35.0 \
   -e FANAP_HIGH_TEMP=60.0 \
   fanap:latest
@@ -601,8 +567,7 @@ sudo ./fanap-linux-amd64 -low-temp=50 -high-temp=80 -verbose
 
 # Docker
 docker run -d \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/thermal:/sys/class/thermal:ro \
+  --privileged \
   -e FANAP_LOW_TEMP=50.0 \
   -e FANAP_HIGH_TEMP=80.0 \
   fanap:latest
@@ -674,11 +639,12 @@ sudo systemctl disable fanap
 - ⚠️ 确保系统有足够的散热能力
 - ⚠️ 建议先在 `-verbose` 模式下测试，确认程序工作正常
 - ⚠️ 程序需要root权限或设备访问权限才能访问硬件监控接口
+- ⚠️ Docker容器需要 `--privileged` 模式才能访问硬件设备
 - ⚠️ 不同的主板和CPU支持的传感器和PWM设备不同
 - ⚠️ 程序退出时会自动恢复原始风扇控制模式
 - ⚠️ 如果遇到问题，先运行 `-check` 命令诊断
 - ⚠️ QNAP等NAS设备使用特殊的cooling device接口，程序会自动适配
-- ⚠️ Docker容器化提供了更好的隔离和管理，但需要正确映射设备
+- ⚠️ 2级冷却设备（只有开/关）在温度阈值区间会间歇性工作，这是正常的
 
 ## 开发
 
@@ -843,6 +809,13 @@ fanap/
    - 在 Artifacts 部分下载构建产物
 
 ## 更新日志
+
+### v1.0.3 (2026-01-01)
+
+- 修复 2 级冷却设备的级别映射问题（max_state=1 时的 PWM 映射）
+- 对于只有开/关的设备，使用阈值逻辑（PWM > 127 开启，≤ 127 关闭）
+- 优化日志输出，移除重复打印
+- 添加详细的 2 级设备调试信息
 
 ### v1.0.2 (2026-01-01)
 

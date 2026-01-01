@@ -7,6 +7,7 @@ Fanap支持Docker容器化部署，简化安装和配置。
 - Docker 20.10 或更高版本
 - Linux系统（需要hwmon或thermal设备）
 - 主机上的root权限或设备访问权限
+- 容器需要 `--privileged` 模式访问硬件设备
 
 ## 快速开始
 
@@ -55,17 +56,7 @@ docker run -d \
   fanap:latest
 ```
 
-**注意**：在 `docker run` 命令中使用 `--privileged` 模式来访问 hwmon 和 thermal 设备。如果不使用 privileged 模式，需要使用以下命令：
-
-```bash
-docker run -d \
-  --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon \
-  -v /sys/class/thermal:/sys/class/thermal \
-  -e FANAP_VERBOSE=true \
-  fanap:latest
-```
+**说明**：程序需要 root 权限访问 `/sys/class/thermal/cooling_deviceX/cur_state` 等硬件设备。容器必须以 root 用户运行并使用 `--privileged` 模式。
 
 ## 配置选项
 
@@ -130,26 +121,18 @@ docker-compose up -d
 
 ### 必需的设备映射
 
-Docker容器需要访问硬件监控设备。有两种方法：
+**重要**：Docker 容器必须以 root 用户运行并使用 `--privileged` 模式才能访问硬件设备（/sys/class/thermal 和 /sys/class/hwmon）。
 
-**方法1：使用特权模式（简单但不推荐用于生产）**
+**推荐方法：使用特权模式**
 
 ```bash
 --privileged
 ```
 
-**方法2：使用卷挂载和权限（推荐）**
-
-```bash
---cap-add SYS_RAWIO
--v /sys/class/hwmon:/sys/class/hwmon
--v /sys/class/thermal:/sys/class/thermal
-```
-
-**注意**：
+**说明**：
 - `--privileged` 提供完整的设备访问权限
-- 卷挂载方式提供更细粒度的权限控制
-- 容器内的非root用户仍然需要适当的权限
+- 容器需要写入 `/sys/class/thermal/cooling_deviceX/cur_state` 等文件
+- 即使使用卷挂载和 `--cap-add`，某些系统仍可能限制对 `/sys` 的写入
 - QNAP等设备通常只需要thermal设备
 
 ### 日志持久化
@@ -227,18 +210,7 @@ docker run -d \
   fanap:latest
 ```
 
-或者使用更安全的权限方式：
-
-```bash
-docker run -d \
-  --name fanap \
-  --restart unless-stopped \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon \
-  -v /sys/class/thermal:/sys/class/thermal \
-  -e FANAP_VERBOSE=false \
-  fanap:latest
-```
+**说明**：生产环境推荐使用 `--privileged` 模式以确保对硬件设备的访问。
 
 ### 限制资源使用
 
@@ -299,21 +271,13 @@ docker run --rm \
   fanap:latest -check
 ```
 
-或者使用更安全的权限方式：
-
-```bash
-docker run --rm \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon \
-  -v /sys/class/thermal:/sys/class/thermal \
-  fanap:latest -check
-```
+**说明**：诊断模式也需要 `--privileged` 模式访问硬件设备。
 
 ### 权限错误
 
-如果看到权限错误，尝试：
+如果看到 `permission denied` 错误：
 
-1. **使用特权模式** (不推荐，仅用于测试):
+**必须使用 `--privileged` 模式**：
 
 ```bash
 docker run -d \
@@ -322,16 +286,7 @@ docker run -d \
   fanap:latest
 ```
 
-2. **使用--cap-add** (推荐):
-
-```bash
-docker run -d \
-  --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon \
-  -v /sys/class/thermal:/sys/class/thermal \
-  fanap:latest
-```
+**重要**：即使使用卷挂载和 `--cap-add SYS_RAWIO`，某些系统仍会限制对 `/sys/class/thermal/cooling_deviceX/cur_state` 的写入。`--privileged` 模式是访问硬件设备的唯一可靠方式。
 
 ### QNAP设备特有问题
 
@@ -396,17 +351,7 @@ docker run -d \
   fanap:latest
 ```
 
-或者使用更安全的权限方式：
-
-```bash
-# 运行新容器
-docker run -d \
-  --name fanap \
-  --cap-add SYS_RAWIO \
-  -v /sys/class/hwmon:/sys/class/hwmon \
-  -v /sys/class/thermal:/sys/class/thermal \
-  fanap:latest
-```
+**说明**：确保使用 `--privileged` 模式。
 
 ### 使用docker-compose更新
 
