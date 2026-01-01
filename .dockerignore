@@ -6,8 +6,9 @@ README.md
 DOCKER.md
 LICENSE
 
-# 构建产物（Docker会构建）
-build/
+# 构建产物（保留二进制文件供Docker使用，忽略其他）
+build/*.tar.gz
+build/*.zip
 *.o
 *.a
 *.so
