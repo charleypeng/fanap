@@ -84,7 +84,7 @@ docker run -d \
   --device=/sys/class/hwmon:/sys/class/hwmon \
   --device=/sys/class/thermal:/sys/class/thermal \
   -e FANAP_VERBOSE=true \
-  fanap:latest
+  ghcr.io/charleypeng/fanap:latest
 ```
 
 #### 3. 查看日志
