@@ -6,7 +6,7 @@ RUN apk add --no-cache ca-certificates
 
 # 创建运行用户（非root）
 RUN addgroup -g 1000 fanap && \
-    adduser -D -u 1000 -G fanap -s /sbin/nologin -c "Fanap Service" fanap
+    adduser -D -u 1000 -G fanap -s /sbin/nologin -g "Fanap Service" fanap
 
 # 创建工作目录
 WORKDIR /app
