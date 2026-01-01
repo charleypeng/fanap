@@ -12,7 +12,7 @@ RUN addgroup -g 1000 fanap && \
 WORKDIR /app
 
 # 复制二进制文件
-COPY fanap-linux-amd64 /app/fanap
+COPY build/fanap-linux-amd64 /app/fanap
 
 # 创建日志目录
 RUN mkdir -p /var/log/fanap && \
