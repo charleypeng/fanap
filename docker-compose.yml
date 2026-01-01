@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  fanap:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fanap:latest
+    container_name: fanap
+    restart: unless-stopped
+    
+    # 环境变量配置
+    environment:
+      # 温度检查间隔（例如：5s, 10s, 30s）
+      - FANAP_INTERVAL=${FANAP_INTERVAL:-5s}
+
+      # 温度阈值
+      - FANAP_LOW_TEMP=${FANAP_LOW_TEMP:-40.0}
+      - FANAP_HIGH_TEMP=${FANAP_HIGH_TEMP:-75.0}
+
+      # PWM范围（0-255）
+      - FANAP_MIN_PWM=${FANAP_MIN_PWM:-50}
+      - FANAP_MAX_PWM=${FANAP_MAX_PWM:-255}
+
+      # 设备路径（auto=自动检测）
+      - FANAP_SENSOR=${FANAP_SENSOR:-auto}
+      - FANAP_PWM=${FANAP_PWM:-auto}
+
+      # 详细日志（true/false）
+      - FANAP_VERBOSE=${FANAP_VERBOSE:-false}
+
+    # 设备映射 - 提供对hwmon和thermal设备的访问
+    devices:
+      # 温度传感器
+      - /sys/class/hwmon:/sys/class/hwmon
+      - /sys/class/thermal:/sys/class/thermal
+
+    # 卷映射 - 日志持久化
+    volumes:
+      - fanap-logs:/var/log/fanap
+
+    # 资源限制（可选）
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# 日志持久化
+volumes:
+  fanap-logs:
+    driver: local

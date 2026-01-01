@@ -1,0 +1,37 @@
+# Git忽略的文件
+.git
+.gitignore
+.github
+README.md
+DOCKER.md
+LICENSE
+
+# 构建产物（Docker会构建）
+build/
+*.o
+*.a
+*.so
+
+# 临时文件
+*.tmp
+*.swp
+*.swo
+*~
+
+# IDE文件
+.idea/
+.vscode/
+*.iml
+
+# Docker文件（除Dockerfile外）
+docker-compose.yml
+build-docker.sh
+docker-quick-start.sh
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 测试文件
+*_test.go
+*.test
