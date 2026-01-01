@@ -10,6 +10,8 @@ on:
   workflow_dispatch:
   release:
     types: [published]
+    # 注意：当通过 action-gh-release 自动创建 Release 时，不会触发此事件
+    # 只有通过 GitHub UI 手动创建或发布草稿 Release 时才会触发
 
 env:
   REGISTRY: ghcr.io
@@ -45,13 +47,27 @@ jobs:
             build/fanap-linux-amd64.tar.gz
           retention-days: 30
 
-      - name: Release
+      - name: Create Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/fanap-linux-amd64
+            build/fanap-linux-amd64.tar.gz
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update Release (manual release)
         if: github.event_name == 'release' && github.event.action == 'published'
         uses: softprops/action-gh-release@v2
         with:
           files: |
             build/fanap-linux-amd64
             build/fanap-linux-amd64.tar.gz
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -85,11 +101,23 @@ jobs:
         run: |
           docker tag fanap:latest ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker tag fanap:latest ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # 如果是标签推送，也标记为版本号
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "Tagging as ${VERSION}"
+            docker tag fanap:latest ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}
+          fi
 
       - name: Push Docker image
         run: |
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          # 如果是标签推送，也推送版本号标签
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+            echo "Pushing tag ${VERSION}"
+            docker push ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${VERSION}
+          fi
 
       - name: Image digest
         run: |
